@@ -149,6 +149,21 @@ def inserir_texto_com_ponteiros(arquivo_binario, caminho_tabela, arquivo_txt, of
         # Calcular os novos ponteiros a partir do índice de início da edição
         novos_ponteiros = calcular_novos_ponteiros(texto_editado, ponteiros_originais, indice_inicio_edicao)
 
+        # Converter o texto editado para hexadecimal
+        hex_str = texto_para_hex(texto_editado, tabela)
+        tamanho_editado = len(hex_str) // 2  # Cada byte é representado por 2 caracteres hex
+
+        # Verificar se o texto editado ultrapassa o limite final
+        if offset_inicial + tamanho_editado > offset_final:
+            excedente = (offset_inicial + tamanho_editado) - offset_final
+            print(f"ERRO: O texto editado ultrapassa o limite final em {excedente} bytes.")
+            return
+
+        # Exibir o tamanho original e o tamanho atual
+        tamanho_original = offset_final - offset_inicial
+        print(f"Tamanho original do texto: {tamanho_original} bytes")
+        print(f"Tamanho atual do texto editado: {tamanho_editado} bytes")
+
         # Abrir o arquivo binário no modo de leitura/escrita binária
         with open(arquivo_binario, 'r+b') as file:
             # Atualizar os ponteiros
@@ -160,7 +175,6 @@ def inserir_texto_com_ponteiros(arquivo_binario, caminho_tabela, arquivo_txt, of
                 offset_ponteiro_atual += 4  # Cada ponteiro ocupa 4 bytes
 
             # Escrever o texto editado no offset inicial
-            hex_str = texto_para_hex(texto_editado, tabela)
             file.seek(offset_inicial)
             file.write(bytes.fromhex(hex_str))
 
