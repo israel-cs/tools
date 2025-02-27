@@ -1,11 +1,13 @@
 import os
+from tabela_mapeamento import TabelaMapeamento
 
 # Caminho do arquivo tradução.txt
 caminho_tradução = os.path.join("EDITADA", "tradução.txt")
 
-# Offsets dos ponteiros
-offset_inicial = 0x24C28C
-offset_final = 0x24C9B8
+# Offsets
+offset_texto_inicio = 0x24C9BE  # Início do texto no DINO.exe
+offset_ponteiros_inicio = 0x24C28C  # Início dos ponteiros no DINO.exe
+offset_ponteiros_fim = 0x24C9B8  # Fim dos ponteiros no DINO.exe
 
 def inserir_texto_e_ponteiros():
     # Verifica se o arquivo tradução.txt existe na pasta EDITADA
@@ -31,10 +33,37 @@ def inserir_texto_e_ponteiros():
 
     # Inicializa o primeiro ponteiro
     ponteiro_atual = 0x0001  # 1 em hexadecimal
-    offset_atual = offset_inicial
+    offset_atual = offset_ponteiros_inicio
 
     # Abre o arquivo DINO.exe para escrita
     with open("DINO.exe", "r+b") as arquivo:
+        # Insere o texto no DINO.exe
+        arquivo.seek(offset_texto_inicio)
+        texto_bytes = b""
+        for bloco in blocos:
+            # Converte o texto para bytes usando a tabela de mapeamento
+            for char in bloco:
+                # Procura o caractere na tabela de mapeamento
+                byte = None
+                for key, value in TabelaMapeamento.tabela.items():
+                    if value == char:
+                        byte = bytes.fromhex(key)
+                        break
+                if byte:
+                    texto_bytes += byte
+                else:
+                    print(f"Erro: Caractere '{char}' não encontrado na tabela de mapeamento.")
+                    return
+
+            # Adiciona o [END] ao final de cada bloco (exceto o último)
+            if bloco != blocos[-1]:
+                texto_bytes += bytes.fromhex("00A0")  # [END]
+
+        # Escreve o texto no DINO.exe
+        arquivo.write(texto_bytes)
+
+        # Insere os ponteiros no DINO.exe
+        arquivo.seek(offset_ponteiros_inicio)
         for i, bloco in enumerate(blocos):
             # Calcula o número de caracteres no bloco atual
             caracteres_bloco = len(bloco.replace("[LN]", " "))  # Substitui [LN] por um espaço para contagem correta
@@ -64,6 +93,8 @@ def inserir_texto_e_ponteiros():
                 ponteiro_atual = 0x0101  # Reinicia a contagem
 
             # Verifica se atingimos o offset final
-            if offset_atual > offset_final:
+            if offset_atual > offset_ponteiros_fim:
                 print("Atenção: Todos os offsets disponíveis foram preenchidos.")
                 break
+
+    print("Texto e ponteiros inseridos com sucesso no arquivo DINO.exe.")
